@@ -1,0 +1,11 @@
+main: mmsr.main.Main
+name: Monumenta_Speedruns
+version: 1.0
+author: rayman520
+description: <need better desc>
+commands:
+  speedrun:
+    description: speedrun
+    usage: "usage: /speedrun <subcommand>"
+    permission: Speedrun.speedrun
+    permission-message: You don't have the permission to use this command.
