@@ -106,6 +106,7 @@ public class Race
 		parseFiles(runner, args[1]);
 		oldLoc = runner.getLocation();
 		runner.teleport(startLoc);
+		runner.addScoreboardTag("is_racing");
 		timeBar = new TimeBar(runner);
 		w = startLoc.getWorld();
 		// initialise basic ring shape
@@ -124,7 +125,7 @@ public class Race
 			ringEntities.add(out);
 		}
 		// race countdown functions
-		Utils.countdown(runner, w, this.plugin);
+		Utils.countdown(runner, w, this.plugin, startLoc);
 		
 		// near ring fast loop
 		Runnable fastLoop = new Runnable()
@@ -161,7 +162,7 @@ public class Race
 				
 				if (runner.getLocation().distance(ringLocs.get(actualRing)) > 100)
 				{
-					runner.sendMessage("you went too far away from the race path. And we dont like cheaters here, in Raycorp.\nPraise the Holy Rayven");
+					runner.sendMessage("you went too far away from the race path.");
 					runner.addScoreboardTag("race_lose");
 				}
 				
@@ -181,15 +182,24 @@ public class Race
 				{
 					if (tag.equals("race_cancel")) //if player called a cancel
 					{
+						runner.removeScoreboardTag("race_cancel");
 						endRace();
 						return;
 					}
 					if (tag.equals("race_lose"))
 					{
+						runner.removeScoreboardTag("race_lose");
 						endRace();
 						runner.teleport(oldLoc);
 						for (String s : rewardLose)
 							Bukkit.dispatchCommand(runner, s);
+					}
+					if (tag.equals("race_retry"))
+					{
+						runner.removeScoreboardTag("race_retry");
+						endRace();
+						runner.teleport(oldLoc);
+						Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ speedrun start " + baseFileName);
 					}
 				}
 				if (fast_task_id == 0 && runner.getLocation().distance(ringLocs.get(actualRing)) < 10)
@@ -224,8 +234,8 @@ public class Race
 			}
 		};
 				
-		loop_task_id = scheduler.scheduleSyncRepeatingTask(plugin, loop, 60L, 10L);
-		anim_task_id = scheduler.scheduleSyncRepeatingTask(plugin, anim, 1L, 1L);
+		loop_task_id = scheduler.scheduleSyncRepeatingTask(plugin, loop, 60L, 5L);
+		anim_task_id = scheduler.scheduleSyncRepeatingTask(plugin, anim, 1L, 2L);
 		
 		// setup events
 		new EvtHandler(plugin, ringEntities);
@@ -260,6 +270,7 @@ public class Race
 	{
 		scheduler.cancelTask(loop_task_id);
 		scheduler.cancelTask(anim_task_id);
+		runner.removeScoreboardTag("is_racing");
 		if (fast_task_id != 0)
 			scheduler.cancelTask(fast_task_id);
 		for (Entity e : ringEntities)
@@ -273,12 +284,12 @@ public class Race
 		
 		if (!no_ui)
 		{
-			int pb = ringTimes.get(ringTimes.size() - 1);
+			int pb = (has_ring_times ? ringTimes.get(ringTimes.size() - 1) : possibleRingTimes.get(possibleRingTimes.size() - 1));
 			if (!has_ring_times || endTime < pb) // if time beated
 			{
 				pb = endTime;
 				//rewrite recoded ringtimes
-				Path path = Paths.get("../../../epic/data/speedruns" + File.separator + "playerdata/recorded_ring_times" + File.separator + baseFileName.toLowerCase() + ".recorded");
+				Path path = Paths.get("../../../epic/data/speedruns" + File.separator + "playerdata/recorded_ring_times" + File.separator + baseFileName.toLowerCase() + File.separator + runner.getName() + ".recorded");
 				try {
 					Files.deleteIfExists(path);
 				} catch (IOException e) {
@@ -287,7 +298,9 @@ public class Race
 				try {
 					List<String> newList = new ArrayList<String>(possibleRingTimes.size());
 					for (Integer myInt : possibleRingTimes)
-						newList.add(String.valueOf(myInt)); 
+						newList.add(String.valueOf(myInt));
+					Files.createDirectories(path.getParent());
+					Files.createFile(path);
 					Files.write(path, newList, Charset.forName("UTF-8"));
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -352,7 +365,6 @@ public class Race
 							"" + ChatColor.BLUE + ChatColor.BOLD,
 							"" + mColor + Utils.msToTimeString(endTime)));
 				}
-				//footer
 		}
 
 			rewards.add(rewardMaster);
@@ -425,7 +437,7 @@ public class Race
 		
 		// RECORDED TIMES
 		
-		file = "../../../epic/data/speedruns" + File.separator + "playerdata/recorded_ring_times" + File.separator + str.toLowerCase() + ".recorded";
+		file = "../../../epic/data/speedruns" + File.separator + "playerdata/recorded_ring_times" + File.separator + str.toLowerCase() + File.separator + runner.getName() + ".recorded";
 		try {
 			content = FileUtils.readFile(file);
 		} catch (FileNotFoundException e) {

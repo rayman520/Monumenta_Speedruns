@@ -25,17 +25,16 @@ import org.bukkit.util.Vector;
 
 public class Utils
 {
-	public static void countdown(Entity runner, World w, Plugin plugin)
+	public static void countdown(Entity runner, World w, Plugin plugin, Location ploc)
 	{
 		BukkitScheduler scheduler = Bukkit.getServer().getScheduler();
-		Location loc = runner.getLocation().add(-1, 1, -1);
 		Runnable cd3 = new Runnable()
 		{
 			public void run()
 			{
-				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "fill " + loc.getX() + " " + loc.getY() + " " + loc.getZ() + " " + loc.getX() + 3 + " " + loc.getY() + 2 + " " + loc.getZ() + 3 + " barrier");
 				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ " + "title @s times 0 20 0");
 				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ " + "title @s title [\"\",{\"text\":\"3\",\"color\":\"red\",\"bold\":true}]");
+				runner.teleport(ploc);
 				w.playSound(runner.getLocation(), Sound.BLOCK_NOTE_BELL, 1, 0.890899f);
 			}
 		};
@@ -44,6 +43,7 @@ public class Utils
 			public void run()
 			{
 				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ " + "title @s title [\"\",{\"text\":\"2\",\"color\":\"gold\",\"bold\":true}]");
+				runner.teleport(ploc);
 				w.playSound(runner.getLocation(), Sound.BLOCK_NOTE_BELL, 1, 0.890899f);
 			}
 		};
@@ -52,6 +52,7 @@ public class Utils
 			public void run()
 			{
 				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ " + "title @s title [\"\",{\"text\":\"1\",\"color\":\"green\",\"bold\":true}]");
+				runner.teleport(ploc);
 				w.playSound(runner.getLocation(), Sound.BLOCK_NOTE_BELL, 1, 0.890899f);
 			}
 		};
@@ -62,8 +63,8 @@ public class Utils
 		{
 			public void run()
 			{
-				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ " + "fill " + loc.getX() + " " + loc.getY() + " " + loc.getZ() + " " + loc.getX() + 2 + " " + loc.getY() + 1 + " " + loc.getZ() + 2 + " air");
 				w.playSound(runner.getLocation(), Sound.BLOCK_NOTE_BELL, 1,  1.781797f);
+				runner.teleport(ploc);
 				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ " + "title @s times 0 4 0");
 			}
 		};
@@ -89,6 +90,7 @@ public class Utils
 			public void run()
 			{
 				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ " + "title @s title [\"\",{\"text\":\" \",\"color\":\"red\",\"bold\":true}]");
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ " + "title @s times 0 20 0");
 				scheduler.cancelTask(taskcd1);
 				scheduler.cancelTask(taskcd2);
 			}

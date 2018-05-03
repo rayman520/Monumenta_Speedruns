@@ -114,7 +114,7 @@ public class Leaderboard
 				if (lines.indexOf(str) == 1)
 				{
 					//world record
-					Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw @a [\"\",{\"text\":\""+playerName+"\",\"color\":\"gold\"},{\"text\":\" beated \",\"color\":\"white\",\"bold\":true},{\"text\":\""+args[2].toLowerCase().substring(args[2].lastIndexOf("/") + 1)+"\",\"color\":\"yellow\",\"bold\":true},{\"text\":\" old World Record.\",\"color\":\"white\",\"bold\":true}]");
+					Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw @a [\"\",{\"text\":\""+playerName+"\",\"color\":\"gold\"},{\"text\":\" has beaten \",\"color\":\"white\",\"bold\":true},{\"text\":\""+args[2].toLowerCase().substring(args[2].lastIndexOf("/") + 1)+"\",\"color\":\"yellow\",\"bold\":true},{\"text\":\" old World Record.\",\"color\":\"white\",\"bold\":true}]");
 					Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "title "+playerName+" title [\"\",{\"text\":\"New World Record\",\"color\":\"blue\",\"bold\":true}]");
 					Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "title "+playerName+" subtitle [\"\",{\"text\":\""+Utils.msToTimeString(newTime)+"\",\"color\":\"aqua\",\"bold\":true}]");
 					Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute "+playerName+" ~ ~ ~ summon fireworks_rocket ~ ~ ~ {LifeTime:10,FireworksItem:{id:fireworks,Count:1,tag:{Fireworks:{Explosions:[{Type:2,Flicker:1b,Colors:[I;1017855,4040191,857599,2424780]}]}}}}");
@@ -134,6 +134,8 @@ public class Leaderboard
 			e.printStackTrace();
 		}
 		try {
+			Files.createDirectories(path.getParent());
+			Files.createFile(path);
 			Files.write(path, lines, Charset.forName("UTF-8"));
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -142,14 +144,15 @@ public class Leaderboard
 		
 	}
 	
-	public void leaderboard_view(CommandSender send, String[] args)
+	public void leaderboard_view(CommandSender sender, String[] args)
 	{
 		//verify args count
 		if (args.length != 4)
 		{
-			send.sendMessage("invalid parameter count.\nUsage: /speedrun leaderboard view <racefile> <starting rank>\nExemple: '/speedrun view race01 1'");
+			sender.sendMessage("invalid parameter count.\nUsage: /speedrun leaderboard view <racefile> <starting rank>\nExemple: '/speedrun view race01 1'");
 			return;
 		}
+		Entity send = Utils.calleeEntity(sender);
 		//get leaderboard file content to a line by line array
 		String file = "../../../epic/data/speedruns" + File.separator + "leaderboards" + File.separator + args[2].toLowerCase() + ".leaderboard";
 		String content;

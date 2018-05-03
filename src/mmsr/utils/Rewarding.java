@@ -27,7 +27,6 @@ public class Rewarding {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		runner.sendMessage(content);
 		String[] splited = content.split(" ");
 		List<String> out = Arrays.asList(splited);
 		for (int i = 0; i < 5; i++)
