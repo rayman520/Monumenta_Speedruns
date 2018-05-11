@@ -3,8 +3,6 @@ package mmsr.main;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.Plugin;
-
 import mmsr.utils.Leaderboard;
 import mmsr.utils.Utils;
 
@@ -40,15 +38,19 @@ public class Speedrun implements CommandExecutor
 				race.cancel(send);
 				break;
 			case "setreward":
-				Utils.setRewardFile(Utils.calleeEntity(send), args);
+				Utils.setRewardFile(plugin, Utils.calleeEntity(send), args);
+				break;
+			case "viewreward":
+				Utils.viewRewardFile(send, plugin, Utils.calleeEntity(send), args);
 				break;
 			default:
 				send.sendMessage(" Unknown '" + args[0] + "' subcommand given.\n" +
 								" Available subcommands:\n" +
-								" -leaderboard"+
-								" -start"+
-								" -cancel"+
-								" -setreward");
+								" -leaderboard\n"+
+								" -start\n"+
+								" -cancel\n"+
+								" -setreward\n"+
+								" -viewreward\n");
 		}
 		return true;
 	}

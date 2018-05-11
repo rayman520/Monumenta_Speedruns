@@ -12,24 +12,19 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.entity.EntityType;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.PluginManager;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.util.Vector;
 
@@ -74,6 +69,8 @@ public class Race
 	List<List<String>> rewards = new ArrayList<List<String>>();
 	List<String> rewardLose = new ArrayList<String>();
 	
+	List<String> raceScripts = new ArrayList<String>();
+	
 	boolean no_ui = false;
 	
 	Location oldLoc;
@@ -92,24 +89,43 @@ public class Race
 	
 	public void start(CommandSender sender, String[] args)
 	{
+		
 		//verify args count
 		if (args.length != 2)
 		{
 			sender.sendMessage("invalid parameter count.\nUsage: /speedrun start <Race_file>");
 			return;
 		}
+		
+		
+		//verify if runner is already in a race
 		runner = Utils.calleeEntity(sender);
-		CommandSender send = (CommandSender)runner;
+		Set<String>	tags = runner.getScoreboardTags();
+		for (String tag : tags)
+		{
+			if (tag.equals("is_racing") || tag.equals("is_racing_no_ui"))
+			{
+				runner.sendMessage("You cannot start multiple races at the same time");
+				return;
+			}
+		}
 		
 		// parse racefile
 		baseFileName = args[1];
 		parseFiles(runner, args[1]);
+		
+		//init race
 		oldLoc = runner.getLocation();
+		startLoc.add(0.5,0,0.5);
 		runner.teleport(startLoc);
-		runner.addScoreboardTag("is_racing");
+		if (!no_ui)
+			runner.addScoreboardTag("is_racing");
+		else
+			runner.addScoreboardTag("is_racing_no_ui");
 		timeBar = new TimeBar(runner);
 		w = startLoc.getWorld();
-		// initialise basic ring shape
+		
+		// init basic ring shape
 		Location baseLoc = new Location(runner.getWorld(), runner.getLocation().getX(), runner.getLocation().getY()-10, runner.getLocation().getZ());
 		for (int angle = 0; angle < 18; angle++)
 		{
@@ -124,8 +140,10 @@ public class Race
 			out.setMarker(true);
 			ringEntities.add(out);
 		}
+		
+		executeScripts();
 		// race countdown functions
-		Utils.countdown(runner, w, this.plugin, startLoc);
+		Utils.countdown(runner, w, this.plugin, startLoc, no_ui);
 		
 		// near ring fast loop
 		Runnable fastLoop = new Runnable()
@@ -141,6 +159,8 @@ public class Race
 				}
 			}
 		};
+		
+		
 		// game loop
 		Runnable loop = new Runnable()
 		{
@@ -162,7 +182,7 @@ public class Race
 				
 				if (runner.getLocation().distance(ringLocs.get(actualRing)) > 100)
 				{
-					runner.sendMessage("you went too far away from the race path.");
+					runner.sendMessage("" + ChatColor.RED + ChatColor.BOLD + "You went too far away from the race path.");
 					runner.addScoreboardTag("race_lose");
 				}
 				
@@ -211,6 +231,8 @@ public class Race
 				}
 			}
 		};
+		
+		
 		//animation loop
 		Runnable anim = new Runnable()
 		{
@@ -238,7 +260,7 @@ public class Race
 		anim_task_id = scheduler.scheduleSyncRepeatingTask(plugin, anim, 1L, 2L);
 		
 		// setup events
-		new EvtHandler(plugin, ringEntities);
+		new EvtHandler(plugin, ringEntities, runner, no_ui);
 	}
 	
 	public void ringPass()
@@ -250,13 +272,13 @@ public class Race
 		{
 			int oldtime = ringTimes.get(actualRing);
 			if (oldtime < displayTime)
-				Bukkit.dispatchCommand(runner, "title @s actionbar [\"\",{\"text\":\""+Utils.msToTimeString(displayTime)+"\",\"color\":\"blue\",\"bold\":true},{\"text\":\"  ( + "+Utils.msToTimeString(displayTime - oldtime)+" )\",\"color\":\"red\",\"bold\":true}]");
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ title @s actionbar [\"\",{\"text\":\""+Utils.msToTimeString(displayTime)+"\",\"color\":\"blue\",\"bold\":true},{\"text\":\"  ( + "+Utils.msToTimeString(displayTime - oldtime)+" )\",\"color\":\"red\",\"bold\":true}]");
 			else
-				Bukkit.dispatchCommand(runner, "title @s actionbar [\"\",{\"text\":\""+Utils.msToTimeString(displayTime)+"\",\"color\":\"blue\",\"bold\":true},{\"text\":\"  ( - "+Utils.msToTimeString(oldtime - displayTime)+" )\",\"color\":\"green\",\"bold\":true}]");
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ title @s actionbar [\"\",{\"text\":\""+Utils.msToTimeString(displayTime)+"\",\"color\":\"blue\",\"bold\":true},{\"text\":\"  ( - "+Utils.msToTimeString(oldtime - displayTime)+" )\",\"color\":\"green\",\"bold\":true}]");
 			
 		}
 		else
-			Bukkit.dispatchCommand(runner, "title @s actionbar [\"\",{\"text\":\""+Utils.msToTimeString(displayTime)+"\",\"color\":\"blue\",\"bold\":true}]" + Long.toString(ts - startTime));
+			Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ title @s actionbar [\"\",{\"text\":\""+Utils.msToTimeString(displayTime)+"\",\"color\":\"blue\",\"bold\":true}]" + Long.toString(ts - startTime));
 
 		startLoc.getWorld().playSound(runner.getLocation(), Sound.BLOCK_NOTE_CHIME, 1, 1.5f);
 		actualRing++;
@@ -264,6 +286,29 @@ public class Race
 			end(displayTime);
 		scheduler.cancelTask(fast_task_id);
 		fast_task_id = 0;
+		// apply scripts
+		executeScripts();
+	}
+	
+	public void executeScripts()
+	{
+		List<String> toberm = new ArrayList<String>();
+		
+		for (String line : raceScripts)
+		{
+			String[] splitline = line.split(" ");
+			int scriptID = Integer.parseInt(splitline[0]);
+			if (scriptID == actualRing)
+			{
+				String cmd = Arrays.stream(splitline).skip(1).collect(Collectors.joining(" "));
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+				toberm.add(line);
+			}
+		}
+		for (String line : toberm)
+		{
+			raceScripts.remove(line);
+		}
 	}
 	
 	public void endRace()
@@ -271,6 +316,7 @@ public class Race
 		scheduler.cancelTask(loop_task_id);
 		scheduler.cancelTask(anim_task_id);
 		runner.removeScoreboardTag("is_racing");
+		runner.removeScoreboardTag("is_racing_no_ui");
 		if (fast_task_id != 0)
 			scheduler.cancelTask(fast_task_id);
 		for (Entity e : ringEntities)
@@ -289,7 +335,7 @@ public class Race
 			{
 				pb = endTime;
 				//rewrite recoded ringtimes
-				Path path = Paths.get("../../../epic/data/speedruns" + File.separator + "playerdata/recorded_ring_times" + File.separator + baseFileName.toLowerCase() + File.separator + runner.getName() + ".recorded");
+				Path path = Paths.get( plugin.getDataFolder().toString() +  "/speedruns" + File.separator + "playerdata/recorded_ring_times" + File.separator + baseFileName.toLowerCase() + File.separator + runner.getName() + ".recorded");
 				try {
 					Files.deleteIfExists(path);
 				} catch (IOException e) {
@@ -306,7 +352,7 @@ public class Race
 					e.printStackTrace();
 				}
 				// update leaderboards
-					Bukkit.dispatchCommand(runner, "speedrun leaderboard add " + baseFileName + " " + endTime);
+					Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ speedrun leaderboard add " + baseFileName + " " + endTime);
 			}
 				// display race end info
 				//header
@@ -317,7 +363,7 @@ public class Race
 				{
 					String content = null;
 					try {
-						content = FileUtils.readFile("../../../epic/data/speedruns" + File.separator + "leaderboards" + File.separator + baseFileName.toLowerCase() + ".leaderboard");
+						content = FileUtils.readFile( plugin.getDataFolder().toString() +  "/speedruns" + File.separator + "leaderboards" + File.separator + baseFileName.toLowerCase() + ".leaderboard");
 					} catch (FileNotFoundException e) {
 						runner.sendMessage("No world record file found " + baseFileName);
 					} catch (Exception e) {
@@ -325,7 +371,7 @@ public class Race
 					}
 					int wrTime = Integer.parseInt(content.split("\n")[0].split(" ")[1]);
 					//int[] medTimes = Utils.getMedalTimes((CommandSender)runner, baseFileName);
-					String mColor = Utils.getMedalColor((CommandSender)runner, endTime, baseFileName);				
+					String mColor = Utils.getMedalColor(plugin, (CommandSender)runner, endTime, baseFileName);				
 					runner.sendMessage(String.format("  %sWorld Record - %16s  | %s %s", 
 							"" + ChatColor.AQUA + ChatColor.BOLD,
 							"" + Utils.msToTimeString(wrTime),
@@ -372,7 +418,7 @@ public class Race
 			rewards.add(rewardSilver);
 			rewards.add(rewardBronze);
 			rewards.add(rewardComplete);
-			Rewarding.medalRewards(runner, baseFileName, rewards, medTimes, endTime);
+			Rewarding.medalRewards(plugin, runner, baseFileName, rewards, medTimes, endTime);
 	}
 	
 	public void parseFiles(Entity send, String str)
@@ -381,7 +427,7 @@ public class Race
 		
 		// RACEFILE
 		
-		String file = "../../../epic/data/speedruns" + File.separator + "racefiles" + File.separator + str.toLowerCase() + ".racefile";
+		String file = plugin.getDataFolder().toString() + "/speedruns" +File.separator + "racefiles" + File.separator + str.toLowerCase() + ".racefile";
 		String content;
 		try {
 			content = FileUtils.readFile(file);
@@ -402,10 +448,12 @@ public class Race
 					ringLocs.add(Utils.getLocation(w, splitedLine[1], splitedLine[2], splitedLine[3]));
 					break;
 				case "start":
-
 					startLoc = Utils.getLocation(w, splitedLine[1], splitedLine[2], splitedLine[3]);
 					startLoc.setYaw(Float.parseFloat(splitedLine[4]));
 					startLoc.setPitch(Float.parseFloat(splitedLine[5]));
+					break;
+				case "script":
+					raceScripts.add(line.substring(7));
 					break;
 				case "reward_master":
 					rewardMaster.add(line.substring(14));
@@ -437,7 +485,7 @@ public class Race
 		
 		// RECORDED TIMES
 		
-		file = "../../../epic/data/speedruns" + File.separator + "playerdata/recorded_ring_times" + File.separator + str.toLowerCase() + File.separator + runner.getName() + ".recorded";
+		file = plugin.getDataFolder().toString() + "/speedruns" +File.separator + "playerdata/recorded_ring_times" + File.separator + str.toLowerCase() + File.separator + runner.getName() + ".recorded";
 		try {
 			content = FileUtils.readFile(file);
 		} catch (FileNotFoundException e) {

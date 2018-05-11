@@ -14,14 +14,15 @@ import java.util.List;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
+import org.bukkit.plugin.Plugin;
 
 public class Rewarding {
 
-	public static void medalRewards(Entity runner, String baseFileName, List<List<String>> rewards, List<Integer> medTimes, int endTime)
+	public static void medalRewards(Plugin plugin, Entity runner, String baseFileName, List<List<String>> rewards, List<Integer> medTimes, int endTime)
 	{
 		String content = null;
 		try {
-			content = FileUtils.readFile("../../../epic/data/speedruns" + File.separator + "playerdata/rewards" + File.separator + baseFileName.toLowerCase() + "/" + runner.getName() + ".rewards").split("\n")[0];
+			content = FileUtils.readFile( plugin.getDataFolder().toString() +  "/speedruns" + File.separator + "playerdata/rewards" + File.separator + baseFileName.toLowerCase() + "/" + runner.getName() + ".rewards").split("\n")[0];
 		} catch (FileNotFoundException e) {
 			content = "0 0 0 0 0";
 		} catch (Exception e) {
@@ -33,13 +34,14 @@ public class Rewarding {
 		{
 			if (out.get(i).equals("0") && endTime < medTimes.get(i))
 			{
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "advancement grant " + runner.getName() + " until monumenta:challenges/speedruns/" + baseFileName.toLowerCase() + "/" + i);
 				giveRewards(runner, rewards.get(i));
 				out.set(i, "1");
 			}
 		}
 		content = String.format("%s %s %s %s %s", out.get(0), out.get(1), out.get(2), out.get(3), out.get(4));
 		//rewrite the whole file
-		Path path = Paths.get("../../../epic/data/speedruns" + File.separator + "playerdata/rewards" + File.separator + baseFileName.toLowerCase() + "/" + runner.getName() + ".rewards");
+		Path path = Paths.get( plugin.getDataFolder().toString() +  "/speedruns" + File.separator + "playerdata/rewards" + File.separator + baseFileName.toLowerCase() + "/" + runner.getName() + ".rewards");
 		try {
 			Files.deleteIfExists(path);
 		} catch (IOException e) {
@@ -60,7 +62,7 @@ public class Rewarding {
 	{
 		for (String str : rewards)
 		{
-			Bukkit.dispatchCommand(runner, str);
+			Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ " + str);
 		}
 	}
 }

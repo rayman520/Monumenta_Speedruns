@@ -25,16 +25,20 @@ import org.bukkit.util.Vector;
 
 public class Utils
 {
-	public static void countdown(Entity runner, World w, Plugin plugin, Location ploc)
+	public static void countdown(Entity runner, World w, Plugin plugin, Location ploc, boolean no_ui)
 	{
 		BukkitScheduler scheduler = Bukkit.getServer().getScheduler();
 		Runnable cd3 = new Runnable()
 		{
 			public void run()
 			{
+				if (!no_ui)
+					runner.sendMessage("" + ChatColor.BLUE + "Reminder:\nShift + Left-Click: Abandon\nShift + Right-Click: Retry");
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ fill ~-1 ~1 ~-1 ~1 ~2 ~1 glass");
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ effect @s minecraft:slowness 3 30");
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ effect @s minecraft:jump_boost 3 129");
 				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ " + "title @s times 0 20 0");
 				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ " + "title @s title [\"\",{\"text\":\"3\",\"color\":\"red\",\"bold\":true}]");
-				runner.teleport(ploc);
 				w.playSound(runner.getLocation(), Sound.BLOCK_NOTE_BELL, 1, 0.890899f);
 			}
 		};
@@ -43,7 +47,6 @@ public class Utils
 			public void run()
 			{
 				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ " + "title @s title [\"\",{\"text\":\"2\",\"color\":\"gold\",\"bold\":true}]");
-				runner.teleport(ploc);
 				w.playSound(runner.getLocation(), Sound.BLOCK_NOTE_BELL, 1, 0.890899f);
 			}
 		};
@@ -52,7 +55,6 @@ public class Utils
 			public void run()
 			{
 				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ " + "title @s title [\"\",{\"text\":\"1\",\"color\":\"green\",\"bold\":true}]");
-				runner.teleport(ploc);
 				w.playSound(runner.getLocation(), Sound.BLOCK_NOTE_BELL, 1, 0.890899f);
 			}
 		};
@@ -63,8 +65,8 @@ public class Utils
 		{
 			public void run()
 			{
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ fill ~-1 ~ ~-1 ~1 ~2 ~1 air");
 				w.playSound(runner.getLocation(), Sound.BLOCK_NOTE_BELL, 1,  1.781797f);
-				runner.teleport(ploc);
 				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ " + "title @s times 0 4 0");
 			}
 		};
@@ -98,14 +100,14 @@ public class Utils
 		scheduler.scheduleSyncDelayedTask(plugin, cdreset, 120L);
 	}
 	
-	public static void setRewardFile(Entity player, String[] args)
+	public static void setRewardFile(Plugin plugin, Entity player, String[] args)
 	{
 		if (args.length != 7)
 		{
 			player.sendMessage("wrong arg count");
 			return;
 		}
-		String fileString = "../../../epic/data/speedruns" + File.separator + "playerdata/rewards" + File.separator + args[1].toLowerCase() + File.separator + player.getName() + ".rewards";
+		String fileString =  plugin.getDataFolder().toString() + "/speedruns" + File.separator + "playerdata/rewards" + File.separator + args[1].toLowerCase() + File.separator + player.getName() + ".rewards";
 		
 		String content = String.format("%s %s %s %s %s", args[2], args[3], args[4], args[5], args[6]);
 		
@@ -129,6 +131,24 @@ public class Utils
 		
 	}
 	
+	public static void viewRewardFile(CommandSender send, Plugin plugin, Entity player, String[] args)
+	{
+		if (args.length != 2)
+		{
+			player.sendMessage("wrong arg count");
+			return;
+		}
+		String fileString =  plugin.getDataFolder().toString() + "/speedruns" + File.separator + "playerdata/rewards" + File.separator + args[1].toLowerCase() + File.separator + player.getName() + ".rewards";
+		
+		String content;
+		try {
+			content = FileUtils.readFile(fileString);
+		} catch (Exception e1) {
+			content = "0 0 0 0 0";
+		}
+		send.sendMessage("rewards for " + player.getName() + ": " + content);
+	}
+	
 	public static String msToTimeString(int ms)
 	{
 		//converts given milliseconds to a hh:mm:ss:lll string
@@ -146,9 +166,9 @@ public class Utils
 		return (out);
 	}
 	
-	public static int[] getMedalTimes(CommandSender send, String file)
+	public static int[] getMedalTimes(Plugin plugin, CommandSender send, String file)
 	{
-		String fileString = "../../../epic/data/speedruns" + File.separator + "racefiles" + File.separator + file.toLowerCase() + ".racefile";
+		String fileString =  plugin.getDataFolder().toString() + "/speedruns" + File.separator + "racefiles" + File.separator + file.toLowerCase() + ".racefile";
 		int[] times = new int[4];
 		String content;
 		try {
@@ -176,9 +196,9 @@ public class Utils
 		return (times);
 	}
 	
-	public static String getMedalColor(CommandSender send, int ms, String file)
+	public static String getMedalColor(Plugin plugin, CommandSender send, int ms, String file)
 	{
-		int[] medalTimes = getMedalTimes(send, file);
+		int[] medalTimes = getMedalTimes(plugin, send, file);
 		if (ms > medalTimes[3])
 			return ("" + ChatColor.GRAY + ChatColor.ITALIC + ChatColor.BOLD);
 		else if (ms > medalTimes[2])

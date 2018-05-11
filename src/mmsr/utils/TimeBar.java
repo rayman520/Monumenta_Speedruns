@@ -5,7 +5,6 @@ import java.util.List;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.boss.BarColor;
-import org.bukkit.boss.BarFlag;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Entity;
@@ -19,7 +18,7 @@ public class TimeBar
 	public TimeBar(Entity runner)
 	{
 		target = runner;
-		bar = Bukkit.getServer().createBossBar("", BarColor.WHITE, BarStyle.SOLID, BarFlag.CREATE_FOG, BarFlag.DARKEN_SKY);
+		bar = Bukkit.getServer().createBossBar("", BarColor.WHITE, BarStyle.SOLID);
 		bar.addPlayer((Player)runner);
 		bar.setVisible(true);
 	}

@@ -1,9 +1,7 @@
 package mmsr.utils;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -18,30 +16,32 @@ public class EvtHandler implements Listener
 {
 
 	List<ArmorStand> ringEntities;
+	Entity player;
 	
-	public EvtHandler(Plugin plugin, List<ArmorStand> rE)
+	public EvtHandler(Plugin plugin, List<ArmorStand> rE, Entity runner, boolean ui)
 	{
 		plugin.getServer().getPluginManager().registerEvents(this, plugin);
 		ringEntities = rE;
+		player = runner;
 	}
 	
 	@EventHandler
 	public void onPlayerQuit(PlayerQuitEvent event)
 	{
-		System.out.println("quit");
-		for (Entity e : ringEntities)
-			e.remove();
+		if (event.getPlayer().getName().equals(player.getName()))
+			for (Entity e : ringEntities)
+				e.remove();
 	}
 		
 	@EventHandler
 	public void onPlayerInteraction(PlayerInteractEvent e)
 	{
-		if (e.getPlayer().isSneaking() == true)
+		Player ePlayer = e.getPlayer();
+		if (ePlayer.isSneaking() == true && ePlayer.getName().equals(player.getName()))
 		{
 			if (e.getAction() == Action.LEFT_CLICK_AIR)
 			{
-				Player player = e.getPlayer();
-				for (String tag : player.getScoreboardTags())
+				for (String tag : ePlayer.getScoreboardTags())
 				{
 					if (tag.equals("is_racing"))
 						player.addScoreboardTag("race_lose");
@@ -49,15 +49,12 @@ public class EvtHandler implements Listener
 			}
 			else if (e.getAction() == Action.RIGHT_CLICK_AIR)
 			{
-				Player player = e.getPlayer();
-				for (String tag : player.getScoreboardTags())
+				for (String tag : ePlayer.getScoreboardTags())
 				{
 					if (tag.equals("is_racing"))
 						player.addScoreboardTag("race_retry");
 				}
 			}
 		}
-
 	}
-
 }

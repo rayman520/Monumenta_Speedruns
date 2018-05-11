@@ -45,24 +45,94 @@ public class Leaderboard
 			case "add":
 				leaderboard_add(send, args);
 				break;
+			case "remove":
+				leaderboard_remove(send, args);
+				break;
 			default:
 				send.sendMessage(" Unknown '" + args[1] + "' subcommand given.\n" +
 								" Available subcommands:\n" +
-								" -view" +
-								" -add");
+								" -view\n" +
+								" -add\n" + 
+								" -remove");
 		}
 	}
 	
-	public void leaderboard_add(CommandSender send, String[] args)
+	public void leaderboard_remove(CommandSender send, String[] args)
 	{
 		//verify args count
-		if (args.length != 4)
+		if (args.length != 3)
 		{
 			send.sendMessage("invalid parameter count.\nUsage: /speedrun leaderboard add <racefile> <Time(ms)>\nExemple: '/speedrun add race01 3600000'");
 			return;
 		}
+		
+		//leaderboard
+		String file = plugin.getDataFolder().toString() +  "/speedruns" + File.separator + "leaderboards" + File.separator + args[2].toLowerCase() + ".leaderboard";
+		String content;
+		try {
+			content = FileUtils.readFile(file);
+		} catch (FileNotFoundException e) {
+			send.sendMessage("File not found: " + file);
+			return;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return;
+		}
+		String playerName = Utils.calleeEntity(send).getName();
+		List<String> lines = new ArrayList<String>(Arrays.asList(content.split("\n")));
+		String splitedLine[];
+		int i = 0;
+		for (String str : lines)
+		{
+
+			splitedLine = str.split(" ");
+			//find the line corresponding to the player
+			if (splitedLine[0].equals(playerName))
+			{
+				lines.remove(i);
+				send.sendMessage("entry removed from leaderboard");
+				break;
+			}
+			i++;
+		}
+		if (i == lines.size())
+			send.sendMessage("no leaderboard entry found for "+playerName);
+		//rewrite file
+		Path path = Paths.get(file);
+		try {
+			Files.deleteIfExists(path);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		try {
+			Files.createDirectories(path.getParent());
+			Files.createFile(path);
+			Files.write(path, lines, Charset.forName("UTF-8"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		//recordedrings
+		path = Paths.get( plugin.getDataFolder().toString() +  "/speedruns" + File.separator + "playerdata/recorded_ring_times" + File.separator + args[2].toLowerCase() + File.separator + playerName + ".recorded");
+		try {
+			Files.deleteIfExists(path);
+			send.sendMessage("ringFile removed for "+playerName);
+		} catch (IOException e) {
+			send.sendMessage("could not remove recorded rings file." + e.getStackTrace());
+		}
+	}
+	
+	public void leaderboard_add(CommandSender sender, String[] args)
+	{
+		//verify args count
+		if (args.length != 4)
+		{
+			sender.sendMessage("invalid parameter count.\nUsage: /speedrun leaderboard add <racefile> <Time(ms)>\nExemple: '/speedrun add race01 3600000'");
+			return;
+		}
+		Entity send = Utils.calleeEntity(sender);
 		//get leaderboard file content to a line by line array
-		String file = "../../../epic/data/speedruns" + File.separator + "leaderboards" + File.separator + args[2].toLowerCase() + ".leaderboard";
+		String file = plugin.getDataFolder().toString() +  "/speedruns" + File.separator + "leaderboards" + File.separator + args[2].toLowerCase() + ".leaderboard";
 		String content;
 		try {
 			content = FileUtils.readFile(file);
@@ -77,7 +147,7 @@ public class Leaderboard
 		// get already stored time
 		int oldTime;
 		int newTime = Integer.parseInt(args[3]);
-		String playerName = send.getName();
+		String playerName = Utils.calleeEntity(send).getName();
 		String[] splitedLine;
 		//parse the file
 		for (String str : lines)
@@ -108,7 +178,7 @@ public class Leaderboard
 				lines.add(lines.indexOf(str), playerName + " " + newTime);
 				send.sendMessage("");
 				send.sendMessage("        " + ChatColor.RED + ChatColor.BOLD + ChatColor.ITALIC + "New Personnal Best!");
-				String medalColor = Utils.getMedalColor(send, newTime, args[2]);
+				String medalColor = Utils.getMedalColor(plugin, send, newTime, args[2]);
 				send.sendMessage("  " + ChatColor.BLUE + "New Time: " + medalColor + Utils.msToTimeString(newTime) + ChatColor.BLUE + "     New Position: " + medalColor + lines.indexOf(str) + ChatColor.GRAY + ChatColor.ITALIC + "/" + lines.size());
 				send.sendMessage("");
 				if (lines.indexOf(str) == 1)
@@ -140,8 +210,6 @@ public class Leaderboard
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
-		
 	}
 	
 	public void leaderboard_view(CommandSender sender, String[] args)
@@ -154,7 +222,7 @@ public class Leaderboard
 		}
 		Entity send = Utils.calleeEntity(sender);
 		//get leaderboard file content to a line by line array
-		String file = "../../../epic/data/speedruns" + File.separator + "leaderboards" + File.separator + args[2].toLowerCase() + ".leaderboard";
+		String file =  plugin.getDataFolder().toString() + "/speedruns" + File.separator + "leaderboards" + File.separator + args[2].toLowerCase() + ".leaderboard";
 		String content;
 		try {
 			content = FileUtils.readFile(file);
@@ -185,7 +253,7 @@ public class Leaderboard
 			currentLine = lines[i + startLine].split(" ");
 			name = currentLine[0];
 			time_ms = Integer.parseInt(currentLine[1]);
-			color = Utils.getMedalColor(send, time_ms, args[2]);
+			color = Utils.getMedalColor(plugin, send, time_ms, args[2]);
 			if (startLine + i == 0 && color.equalsIgnoreCase("" + ChatColor.GREEN + ChatColor.ITALIC + ChatColor.BOLD))
 				color = "" + ChatColor.AQUA + ChatColor.ITALIC + ChatColor.BOLD;
 			send.sendMessage(String.format("%10s - %18s -    %s", "  " + ChatColor.BOLD + (i + startLine + 1) + ChatColor.RESET + "  ", String.format("%s%s", color, Utils.msToTimeString(time_ms)), name));
