@@ -1,11 +1,21 @@
 main: mmsr.main.Main
 name: Monumenta_Speedruns
-version: 1.0
+version: 1.27
 author: rayman520
 description: <need better desc>
 commands:
   speedrun:
     description: speedrun
     usage: "usage: /speedrun <subcommand>"
-    permission: Speedrun.speedrun
+    permission: speedrun.speedrun
+    permission-message: You don't have the permission to use this command.
+  leadview:
+    description: leadview
+    usage: "usage: /leadview <racefile> <starting rank>"
+    permission: speedrun.leadview
+    permission-message: You don't have the permission to use this command.
+  leadgen:
+    description: leadgen
+    usage: "usage: /leadgen <scoreboard_name> <keep_order> <startpoint>"
+    permission: speedrun.leadview
     permission-message: You don't have the permission to use this command.

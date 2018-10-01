@@ -9,6 +9,8 @@ public class Main extends JavaPlugin
 	public void onEnable()
 	{
 		getCommand("speedrun").setExecutor(new Speedrun(this));
+		getCommand("leadview").setExecutor(new LeadView(this));
+		getCommand("leadgen").setExecutor(new LeadGen(this));
 		Bukkit.getConsoleSender().sendMessage("[Monumenta-speedruns] Plugin enabled!");
 	}
 

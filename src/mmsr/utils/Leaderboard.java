@@ -19,6 +19,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scoreboard.Objective;
 
 public class Leaderboard
 {
@@ -48,21 +49,134 @@ public class Leaderboard
 			case "remove":
 				leaderboard_remove(send, args);
 				break;
+			case "generate":
+				leaderboard_generate(send, args);
+				break;
 			default:
 				send.sendMessage(" Unknown '" + args[1] + "' subcommand given.\n" +
 								" Available subcommands:\n" +
 								" -view\n" +
 								" -add\n" + 
-								" -remove");
+								" -remove" +
+								" -generate");
 		}
+	}
+	
+	private void leaderboard_generate(CommandSender sender, String[] args)
+	{
+		if (args.length != 5)
+		{
+			sender.sendMessage("invalid parameter count.\nUsage: /speedrun leaderboard generate <scoreboard_name> <keep_order> <startpoint> \nExemple: '/speedrun generate <RLcompletion> true 1'");
+			return;
+		}
+		Objective obj = Bukkit.getScoreboardManager().getMainScoreboard().getObjective(args[2]);
+		List<String> nameList = new ArrayList<String>();
+		List<Integer> scoreList = new ArrayList<Integer>();
+		int score;
+		for(String name : obj.getScoreboard().getEntries())
+		{
+			score = obj.getScore(name).getScore();
+			for (int i = 0; i <= scoreList.size(); i++)
+			{
+				if (i == scoreList.size() || score > scoreList.get(i))
+				{
+					scoreList.add(i, score);
+					nameList.add(i, name);
+					break;
+				}
+			}
+		}
+		
+		if (args[3].equalsIgnoreCase("false"))
+		{
+			List<String> nameTmp = new ArrayList<String>();
+			List<Integer> scoreTmp = new ArrayList<Integer>();
+			for (int i = nameList.size() - 1; i >= 0; i--)
+			{
+				nameTmp.add(nameList.get(i));
+				scoreTmp.add(scoreList.get(i));
+			}
+			nameList = nameTmp;
+			scoreList = scoreTmp;
+		}
+		
+		int startLine = Integer.parseInt(args[4]) - 1;
+		startLine = ((int)(startLine / 10)) * 10;
+		// print header
+		sender.sendMessage(" " +  String.format("%s - %s", "" + ChatColor.AQUA + "Leaderboard", "" + ChatColor.YELLOW + args[2].toLowerCase()) + "          ");
+		sender.sendMessage(" ");
+		// print leaderboard itself
+		sender.sendMessage("" + ChatColor.DARK_GRAY + ChatColor.ITALIC + " Rank  |        Name      |    Score");
+		String[] currentLine;
+		String name;
+		int time_ms;
+		String color;
+		int index;
+		for (int i = 0; i < 10; i++)
+		{
+			index = i + startLine;
+			if ((index) == nameList.size())
+				break;
+			
+			switch (index)
+			{
+			case (0):
+				color = "" + ChatColor.GOLD + ChatColor.BOLD;
+				break;
+			case (1):
+				color = "" + ChatColor.WHITE + ChatColor.BOLD;
+				break;
+			case (2):
+				color = "" + ChatColor.DARK_RED + ChatColor.BOLD;
+				break;
+			default:
+				color = "" + ChatColor.GRAY;
+			}
+			
+			String line = String.format("%s%s - %-15s -    %s", color, index + 1, nameList.get(index), scoreList.get(index));
+			sender.sendMessage(line);
+		}
+		sender.sendMessage(" ");
+		Entity send = Utils.calleeEntity(sender);
+		if (send instanceof Player)
+		{
+			int pageCount = (nameList.size() - 1) / 10;
+			int actualPage = startLine / 10;
+			if (pageCount == 0)
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw "+((Player)send).getName()+" [\"\",{\"text\":\"--==-- \",\"color\":\"blue\",\"bold\":true},{\"text\":\"[ < ] \",\"color\":\"gray\",\"bold\":false},{\"text\":\"  Page:  \",\"color\":\"yellow\"},{\"text\":\""+String.format("%4d/%-4d", actualPage + 1, pageCount + 1)+"\",\"color\":\"yellow\",\"bold\":true},{\"text\":\"   [ > ]\",\"color\":\"gray\",\"bold\":false},{\"text\":\" --==--\",\"color\":\"blue\",\"bold\":true}]");
+			else if (actualPage == 0)
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw "+((Player)send).getName()+" [\"\",{\"text\":\"--==-- \",\"color\":\"blue\",\"bold\":true},{\"text\":\"[ < ] \",\"color\":\"gray\",\"bold\":false},{\"text\":\"  Page:  \",\"color\":\"yellow\"},{\"text\":\""+String.format("%4d/%-4d", actualPage + 1, pageCount + 1)+"\",\"color\":\"yellow\",\"bold\":true},{\"text\":\"   [ > ]\",\"color\":\"light_purple\",\"bold\":true,\"clickEvent\":{\"action\":\"run_command\",\"value\":\"leadview "+args[2]+" "+(startLine + 11)+"\"}},{\"text\":\" --==--\",\"color\":\"blue\",\"bold\":true}]");
+			else if (actualPage == pageCount)
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw "+((Player)send).getName()+" [\"\",{\"text\":\"--==-- \",\"color\":\"blue\",\"bold\":true},{\"text\":\"[ < ] \",\"color\":\"light_purple\",\"bold\":true,\"clickEvent\":{\"action\":\"run_command\",\"value\":\"leadview"+args[2]+" "+(startLine)+"\"}},{\"text\":\"  Page:  \",\"color\":\"yellow\",\"bold\":false},{\"text\":\""+String.format("%4d/%-4d", actualPage + 1, pageCount + 1)+"\",\"color\":\"yellow\",\"bold\":true},{\"text\":\"   [ > ]\",\"color\":\"gray\",\"bold\":false},{\"text\":\" --==--\",\"color\":\"blue\",\"bold\":true}]");
+			else
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw "+((Player)send).getName()+" [\"\",{\"text\":\"--==-- \",\"color\":\"blue\",\"bold\":true},{\"text\":\"[ < ] \",\"color\":\"light_purple\",\"bold\":true,\"clickEvent\":{\"action\":\"run_command\",\"value\":\"leadview "+args[2]+" "+(startLine)+"\"}},{\"text\":\"  Page:  \",\"color\":\"yellow\",\"bold\":false},{\"text\":\""+String.format("%4d/%-4d", actualPage + 1, pageCount + 1)+"\",\"color\":\"yellow\",\"bold\":true},{\"text\":\"   [ > ]\",\"color\":\"light_purple\",\"bold\":true,\"clickEvent\":{\"action\":\"run_command\",\"value\":\"leadview "+args[2]+" "+(startLine + 11)+"\"}},{\"text\":\" --==--\",\"color\":\"blue\",\"bold\":true}]");
+			send.sendMessage(" ");
+		}
+		/*
+		//print footer
+		if (send instanceof Player)
+		{
+			int pageCount = (lines.length - 1) / 10;
+			int actualPage = startLine / 10;
+			if (pageCount == 0)
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw "+((Player)send).getName()+" [\"\",{\"text\":\"--==-- \",\"color\":\"blue\",\"bold\":true},{\"text\":\"[ < ] \",\"color\":\"gray\",\"bold\":false},{\"text\":\"  Page:  \",\"color\":\"yellow\"},{\"text\":\""+String.format("%4d/%-4d", actualPage + 1, pageCount + 1)+"\",\"color\":\"yellow\",\"bold\":true},{\"text\":\"   [ > ]\",\"color\":\"gray\",\"bold\":false},{\"text\":\" --==--\",\"color\":\"blue\",\"bold\":true}]");
+			else if (actualPage == 0)
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw "+((Player)send).getName()+" [\"\",{\"text\":\"--==-- \",\"color\":\"blue\",\"bold\":true},{\"text\":\"[ < ] \",\"color\":\"gray\",\"bold\":false},{\"text\":\"  Page:  \",\"color\":\"yellow\"},{\"text\":\""+String.format("%4d/%-4d", actualPage + 1, pageCount + 1)+"\",\"color\":\"yellow\",\"bold\":true},{\"text\":\"   [ > ]\",\"color\":\"light_purple\",\"bold\":true,\"clickEvent\":{\"action\":\"run_command\",\"value\":\"leadview "+args[2]+" "+(startLine + 11)+"\"}},{\"text\":\" --==--\",\"color\":\"blue\",\"bold\":true}]");
+			else if (actualPage == pageCount)
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw "+((Player)send).getName()+" [\"\",{\"text\":\"--==-- \",\"color\":\"blue\",\"bold\":true},{\"text\":\"[ < ] \",\"color\":\"light_purple\",\"bold\":true,\"clickEvent\":{\"action\":\"run_command\",\"value\":\"leadview"+args[2]+" "+(startLine)+"\"}},{\"text\":\"  Page:  \",\"color\":\"yellow\",\"bold\":false},{\"text\":\""+String.format("%4d/%-4d", actualPage + 1, pageCount + 1)+"\",\"color\":\"yellow\",\"bold\":true},{\"text\":\"   [ > ]\",\"color\":\"gray\",\"bold\":false},{\"text\":\" --==--\",\"color\":\"blue\",\"bold\":true}]");
+			else
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw "+((Player)send).getName()+" [\"\",{\"text\":\"--==-- \",\"color\":\"blue\",\"bold\":true},{\"text\":\"[ < ] \",\"color\":\"light_purple\",\"bold\":true,\"clickEvent\":{\"action\":\"run_command\",\"value\":\"leadview "+args[2]+" "+(startLine)+"\"}},{\"text\":\"  Page:  \",\"color\":\"yellow\",\"bold\":false},{\"text\":\""+String.format("%4d/%-4d", actualPage + 1, pageCount + 1)+"\",\"color\":\"yellow\",\"bold\":true},{\"text\":\"   [ > ]\",\"color\":\"light_purple\",\"bold\":true,\"clickEvent\":{\"action\":\"run_command\",\"value\":\"leadview "+args[2]+" "+(startLine + 11)+"\"}},{\"text\":\" --==--\",\"color\":\"blue\",\"bold\":true}]");
+			send.sendMessage(" ");
+		}
+		*/
 	}
 	
 	public void leaderboard_remove(CommandSender send, String[] args)
 	{
 		//verify args count
-		if (args.length != 3)
+		if (args.length != 4)
 		{
-			send.sendMessage("invalid parameter count.\nUsage: /speedrun leaderboard add <racefile> <Time(ms)>\nExemple: '/speedrun add race01 3600000'");
+			send.sendMessage("invalid parameter count.\nUsage: /speedrun leaderboard remove <racefile> <playername>\nExemple: '/speedrun remove r1/tutorial+ rayman520'");
 			return;
 		}
 		
@@ -78,7 +192,7 @@ public class Leaderboard
 			e.printStackTrace();
 			return;
 		}
-		String playerName = Utils.calleeEntity(send).getName();
+		String playerName = args[3];
 		List<String> lines = new ArrayList<String>(Arrays.asList(content.split("\n")));
 		String splitedLine[];
 		int i = 0;
@@ -177,7 +291,7 @@ public class Leaderboard
 			{
 				lines.add(lines.indexOf(str), playerName + " " + newTime);
 				send.sendMessage("");
-				send.sendMessage("        " + ChatColor.RED + ChatColor.BOLD + ChatColor.ITALIC + "New Personnal Best!");
+				send.sendMessage("        " + ChatColor.RED + ChatColor.BOLD + ChatColor.ITALIC + "New Personal Best!");
 				String medalColor = Utils.getMedalColor(plugin, send, newTime, args[2]);
 				send.sendMessage("  " + ChatColor.BLUE + "New Time: " + medalColor + Utils.msToTimeString(newTime) + ChatColor.BLUE + "     New Position: " + medalColor + lines.indexOf(str) + ChatColor.GRAY + ChatColor.ITALIC + "/" + lines.size());
 				send.sendMessage("");
@@ -267,13 +381,12 @@ public class Leaderboard
 			if (pageCount == 0)
 				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw "+((Player)send).getName()+" [\"\",{\"text\":\"--==-- \",\"color\":\"blue\",\"bold\":true},{\"text\":\"[ < ] \",\"color\":\"gray\",\"bold\":false},{\"text\":\"  Page:  \",\"color\":\"yellow\"},{\"text\":\""+String.format("%4d/%-4d", actualPage + 1, pageCount + 1)+"\",\"color\":\"yellow\",\"bold\":true},{\"text\":\"   [ > ]\",\"color\":\"gray\",\"bold\":false},{\"text\":\" --==--\",\"color\":\"blue\",\"bold\":true}]");
 			else if (actualPage == 0)
-				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw "+((Player)send).getName()+" [\"\",{\"text\":\"--==-- \",\"color\":\"blue\",\"bold\":true},{\"text\":\"[ < ] \",\"color\":\"gray\",\"bold\":false},{\"text\":\"  Page:  \",\"color\":\"yellow\"},{\"text\":\""+String.format("%4d/%-4d", actualPage + 1, pageCount + 1)+"\",\"color\":\"yellow\",\"bold\":true},{\"text\":\"   [ > ]\",\"color\":\"light_purple\",\"bold\":true,\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/speedrun leaderboard view "+args[2]+" "+(startLine + 11)+"\"}},{\"text\":\" --==--\",\"color\":\"blue\",\"bold\":true}]");
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw "+((Player)send).getName()+" [\"\",{\"text\":\"--==-- \",\"color\":\"blue\",\"bold\":true},{\"text\":\"[ < ] \",\"color\":\"gray\",\"bold\":false},{\"text\":\"  Page:  \",\"color\":\"yellow\"},{\"text\":\""+String.format("%4d/%-4d", actualPage + 1, pageCount + 1)+"\",\"color\":\"yellow\",\"bold\":true},{\"text\":\"   [ > ]\",\"color\":\"light_purple\",\"bold\":true,\"clickEvent\":{\"action\":\"run_command\",\"value\":\"leadview "+args[2]+" "+(startLine + 11)+"\"}},{\"text\":\" --==--\",\"color\":\"blue\",\"bold\":true}]");
 			else if (actualPage == pageCount)
-				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw "+((Player)send).getName()+" [\"\",{\"text\":\"--==-- \",\"color\":\"blue\",\"bold\":true},{\"text\":\"[ < ] \",\"color\":\"light_purple\",\"bold\":true,\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/speedrun leaderboard view "+args[2]+" "+(startLine)+"\"}},{\"text\":\"  Page:  \",\"color\":\"yellow\",\"bold\":false},{\"text\":\""+String.format("%4d/%-4d", actualPage + 1, pageCount + 1)+"\",\"color\":\"yellow\",\"bold\":true},{\"text\":\"   [ > ]\",\"color\":\"gray\",\"bold\":false},{\"text\":\" --==--\",\"color\":\"blue\",\"bold\":true}]");
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw "+((Player)send).getName()+" [\"\",{\"text\":\"--==-- \",\"color\":\"blue\",\"bold\":true},{\"text\":\"[ < ] \",\"color\":\"light_purple\",\"bold\":true,\"clickEvent\":{\"action\":\"run_command\",\"value\":\"leadview"+args[2]+" "+(startLine)+"\"}},{\"text\":\"  Page:  \",\"color\":\"yellow\",\"bold\":false},{\"text\":\""+String.format("%4d/%-4d", actualPage + 1, pageCount + 1)+"\",\"color\":\"yellow\",\"bold\":true},{\"text\":\"   [ > ]\",\"color\":\"gray\",\"bold\":false},{\"text\":\" --==--\",\"color\":\"blue\",\"bold\":true}]");
 			else
-				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw "+((Player)send).getName()+" [\"\",{\"text\":\"--==-- \",\"color\":\"blue\",\"bold\":true},{\"text\":\"[ < ] \",\"color\":\"light_purple\",\"bold\":true,\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/speedrun leaderboard view "+args[2]+" "+(startLine)+"\"}},{\"text\":\"  Page:  \",\"color\":\"yellow\",\"bold\":false},{\"text\":\""+String.format("%4d/%-4d", actualPage + 1, pageCount + 1)+"\",\"color\":\"yellow\",\"bold\":true},{\"text\":\"   [ > ]\",\"color\":\"light_purple\",\"bold\":true,\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/speedrun leaderboard view "+args[2]+" "+(startLine + 11)+"\"}},{\"text\":\" --==--\",\"color\":\"blue\",\"bold\":true}]");
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw "+((Player)send).getName()+" [\"\",{\"text\":\"--==-- \",\"color\":\"blue\",\"bold\":true},{\"text\":\"[ < ] \",\"color\":\"light_purple\",\"bold\":true,\"clickEvent\":{\"action\":\"run_command\",\"value\":\"leadview "+args[2]+" "+(startLine)+"\"}},{\"text\":\"  Page:  \",\"color\":\"yellow\",\"bold\":false},{\"text\":\""+String.format("%4d/%-4d", actualPage + 1, pageCount + 1)+"\",\"color\":\"yellow\",\"bold\":true},{\"text\":\"   [ > ]\",\"color\":\"light_purple\",\"bold\":true,\"clickEvent\":{\"action\":\"run_command\",\"value\":\"leadview "+args[2]+" "+(startLine + 11)+"\"}},{\"text\":\" --==--\",\"color\":\"blue\",\"bold\":true}]");
 			send.sendMessage(" ");
 		}
-		
 	}
 }

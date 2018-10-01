@@ -200,6 +200,8 @@ public class Race
 				Set<String>	tags = runner.getScoreboardTags();
 				for (String tag : tags)
 				{
+					if (tag == null)
+						break;
 					if (tag.equals("race_cancel")) //if player called a cancel
 					{
 						runner.removeScoreboardTag("race_cancel");

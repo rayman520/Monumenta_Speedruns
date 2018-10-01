@@ -28,13 +28,23 @@ public class Utils
 	public static void countdown(Entity runner, World w, Plugin plugin, Location ploc, boolean no_ui)
 	{
 		BukkitScheduler scheduler = Bukkit.getServer().getScheduler();
+		Location savedLoc = runner.getLocation();
+		Runnable tp = new Runnable()
+		{
+			public void run()
+			{
+				Location newLoc = new Location(runner.getWorld(), savedLoc.getX(), savedLoc.getY(), savedLoc.getZ());
+				newLoc.setDirection(runner.getLocation().getDirection());
+				runner.teleport(newLoc);
+			}
+		};
 		Runnable cd3 = new Runnable()
 		{
 			public void run()
 			{
 				if (!no_ui)
 					runner.sendMessage("" + ChatColor.BLUE + "Reminder:\nShift + Left-Click: Abandon\nShift + Right-Click: Retry");
-				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ fill ~-1 ~1 ~-1 ~1 ~2 ~1 glass");
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ fill ~-1 ~1 ~-1 ~1 ~2 ~1 glass 0 replace air");
 				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ effect @s minecraft:slowness 3 30");
 				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ effect @s minecraft:jump_boost 3 129");
 				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ " + "title @s times 0 20 0");
@@ -58,6 +68,7 @@ public class Utils
 				w.playSound(runner.getLocation(), Sound.BLOCK_NOTE_BELL, 1, 0.890899f);
 			}
 		};
+		int tasktp = scheduler.scheduleSyncRepeatingTask(plugin, tp, 0L, 5L);
 		scheduler.scheduleSyncDelayedTask(plugin, cd3, 0L);
 		scheduler.scheduleSyncDelayedTask(plugin, cd2, 20L);
 		scheduler.scheduleSyncDelayedTask(plugin, cd1, 40L);
@@ -65,9 +76,10 @@ public class Utils
 		{
 			public void run()
 			{
-				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ fill ~-1 ~ ~-1 ~1 ~2 ~1 air");
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ fill ~-1 ~ ~-1 ~1 ~2 ~1 air 0 replace glass");
 				w.playSound(runner.getLocation(), Sound.BLOCK_NOTE_BELL, 1,  1.781797f);
 				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute " + runner.getName() + " ~ ~ ~ " + "title @s times 0 4 0");
+				scheduler.cancelTask(tasktp);
 			}
 		};
 		scheduler.scheduleSyncDelayedTask(plugin, cdgosound, 60L);

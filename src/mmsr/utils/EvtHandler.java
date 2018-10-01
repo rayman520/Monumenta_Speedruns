@@ -9,6 +9,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 
@@ -29,9 +30,23 @@ public class EvtHandler implements Listener
 	public void onPlayerQuit(PlayerQuitEvent event)
 	{
 		if (event.getPlayer().getName().equals(player.getName()))
+		{
 			for (Entity e : ringEntities)
 				e.remove();
+			Player ePlayer = event.getPlayer();
+			ePlayer.removeScoreboardTag("is_racing");
+			ePlayer.removeScoreboardTag("is_racing_no_ui");
+		}	
 	}
+	
+	@EventHandler
+	public void onPlayerJoin(PlayerJoinEvent event)
+	{
+		Player ePlayer = event.getPlayer();
+		ePlayer.removeScoreboardTag("is_racing");
+		ePlayer.removeScoreboardTag("is_racing_no_ui");
+	}
+		
 		
 	@EventHandler
 	public void onPlayerInteraction(PlayerInteractEvent e)
@@ -43,6 +58,8 @@ public class EvtHandler implements Listener
 			{
 				for (String tag : ePlayer.getScoreboardTags())
 				{
+					if (tag == null)
+						break;
 					if (tag.equals("is_racing"))
 						player.addScoreboardTag("race_lose");
 				}
